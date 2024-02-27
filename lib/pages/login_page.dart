@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'accueil.dart';
+import 'utilisateur.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -9,6 +11,50 @@ class _LoginPageState extends State<LoginPage> {
 
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  bool isButtonVisible = false;
+
+  @override
+  void initState(){
+    super.initState();
+    usernameController.addListener(updateButtonVisibility);
+    passwordController.addListener(updateButtonVisibility);
+  }
+  void updateButtonVisibility(){
+    setState((){
+      isButtonVisible = usernameController.text.isNotEmpty && passwordController.text.isNotEmpty;
+    });
+  }
+  void login(){
+    String username = usernameController.text;
+    String password = passwordController.text;
+
+    Utilisateur utilisateurTrouve = listeUtilisateurs.firstWhere(
+          (utilisateur) => utilisateur.mail == username || utilisateur.pseudo == username,
+      orElse: () => Utilisateur(mail: '', pseudo: '', telephone: '', motDePasse: '', type: ''),
+    );
+
+    if(utilisateurTrouve != null && utilisateurTrouve.motDePasse == password){
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context)=>AccueilPage(type: utilisateurTrouve.type)),
+      );
+    } else {
+      showDialog(
+        context:context,
+        builder:(context)=>AlertDialog(
+          title:Text('Erreur de connexion'),
+          content: Text('Identifiant ou mot de passe incorrect.'),
+          actions : [
+            TextButton(
+              onPressed: ()=>Navigator.pop(context),
+              child:Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +118,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _inputField(String hintText, TextEditingController controller,{isPassword = false}){
     var border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: Colors.white)
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Colors.white)
     );
     return TextField(
       style: const TextStyle(color:Colors.white),
@@ -89,11 +135,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _loginBtn(){
-    return ElevatedButton(
-      onPressed: (){
-        debugPrint("Pseudo/mail ou téléphone :"+ usernameController.text);
-        debugPrint("Mot de passe :"+ passwordController.text);
-      },
+    return isButtonVisible ? ElevatedButton(
+      onPressed: login, // Utiliser la méthode de vérification des informations de connexion
       child: SizedBox(
         width: double.infinity,
         child: Text(
@@ -102,7 +145,7 @@ class _LoginPageState extends State<LoginPage> {
           style: TextStyle(fontSize: 20),
         ),
       ),
-    );
+    ) : SizedBox();
   }
 
   Widget _extraText(){
@@ -110,8 +153,8 @@ class _LoginPageState extends State<LoginPage> {
       "Vous n'arrivez pas à accéder à votre compte?",
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontSize: 16,
-        color: Colors.white
+          fontSize: 16,
+          color: Colors.white
       ),
     );
   }

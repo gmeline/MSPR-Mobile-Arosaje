@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_arosaje/pages/login_page.dart';
+import 'package:test_arosaje/pages/post_creation.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home:LoginPage(),
+      // Remplacez LoginPage par le nom de votre page cible
+      home: const ImagePickerApp(),
     );
   }
 }

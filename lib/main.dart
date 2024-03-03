@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       // Remplacez LoginPage par le nom de votre page cible
-      home: const ImagePickerApp(),
+      home: ImagePickerApp(),
     );
   }
 }

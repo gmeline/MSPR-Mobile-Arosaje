@@ -1,55 +1,84 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-class ImagePickerApp extends StatefulWidget {
-  const ImagePickerApp({Key? key}) : super(key: key);
 
+class ImagePickerApp extends StatefulWidget {
   @override
   _ImagePickerAppState createState() => _ImagePickerAppState();
 }
 
 class _ImagePickerAppState extends State<ImagePickerApp> {
-  File? _image;
+  List<File> images = [];
 
-  Future getImage() async {
-    final image = await ImagePicker().pickImage(source:  ImageSource.gallery);
+  Future getImage(ImageSource source) async {
+    final image = await ImagePicker().pickImage(source: source);
     if (image == null) return;
 
     final imageTemporary = File(image.path);
 
     setState(() {
-      this._image = imageTemporary;
+      if (images.length < 6) {
+        images.add(imageTemporary);
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Limite d'images atteinte"),
+              content: Text("Vous ne pouvez sélectionner que 6 images."),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     });
   }
+
+  Widget buildGridView() {
+    return Expanded(
+      child: Center(
+        child: GridView.count(
+          crossAxisCount: 3,
+          children: List.generate(images.length, (index) {
+            File image = images[index];
+            return Container(
+              margin: EdgeInsets.all(8.0),
+              child: Image.file(
+                image,
+                height: 100,
+                width: 100,
+                fit: BoxFit.cover,
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pick an image'),
+        title: Text('Multiple Picker Image'),
       ),
-      body: Center(
+      body: Container(
+        height: MediaQuery.of(context).size.height,
+        width: MediaQuery.of(context).size.width,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.network(
-              'https://www.ikea.com/fr/fr/images/products/fejka-plante-artificielle-en-pot-interieur-exterieur-monstera__0614197_pe686822_s5.jpg?f=xl',
-              height: 150,
-            ),
-            SizedBox(height: 20),
-            PhotoButton(
-              title: 'Pick an Image',
-              icon: Icons.image_outlined,
-              onClick: () {
-                // Add logic for picking an image
-              },
-            ),
-            SizedBox(height: 20),
-            PhotoButton(
-              title: "Take a Photo",
-              icon: Icons.camera,
-              onClick: () {
-                // Add logic for taking a photo
-              },
+          children: <Widget>[
+            buildGridView(),
+            ElevatedButton(
+              child: Text("Sélectionner des images"),
+              onPressed: () => getImage(ImageSource.gallery),
             ),
           ],
         ),
@@ -58,33 +87,8 @@ class _ImagePickerAppState extends State<ImagePickerApp> {
   }
 }
 
-class PhotoButton extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final VoidCallback onClick;
-
-  const PhotoButton({
-    Key? key,
-    required this.title,
-    required this.icon,
-    required this.onClick,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      child: ElevatedButton(
-        onPressed: onClick,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon),
-            SizedBox(width: 20),
-            Text(title),
-          ],
-        ),
-      ),
-    );
-  }
+void main() {
+  runApp(MaterialApp(
+    home: ImagePickerApp(),
+  ));
 }

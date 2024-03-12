@@ -64,9 +64,9 @@ class _LoginPageState extends State<LoginPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors:[
-              Colors.brown,
-              Colors.green,
-            ],
+          Colors.brown,
+          Colors.green,
+        ],
         )
       ),
       child: Scaffold(

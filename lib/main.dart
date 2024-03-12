@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_arosaje/pages/List_announce.dart';
 import 'package:test_arosaje/pages/login_page.dart';
 import 'package:test_arosaje/pages/post_creation.dart';
 
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       // Remplacez LoginPage par le nom de votre page cible
-      home: PostCreationScreen(),
+      home: ListeAnnoncesScreen(),
     );
   }
 }

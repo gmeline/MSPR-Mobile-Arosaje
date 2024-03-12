@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'localisation.dart'; // Import the LocalisationScreen
+import 'package:http/http.dart' as http;
+import 'package:test_arosaje/pages/List_announce.dart';
 
 class PostCreationScreen extends StatefulWidget {
   @override
@@ -12,17 +15,18 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   List<File> images = [];
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
+  TextEditingController locationController = TextEditingController();
   DateTime? startDate;
   DateTime? endDate;
 
-  Future getImage(ImageSource source) async {
+  Future<void> getImage(ImageSource source) async {
     final image = await ImagePicker().pickImage(source: source);
     if (image == null) return;
 
     final imageTemporary = File(image.path);
 
     setState(() {
-      if (images.length < 6) {
+      if (images.length < 1) {
         images.add(imageTemporary);
       } else {
         showDialog(
@@ -30,7 +34,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text("Limite d'images atteinte"),
-              content: Text("Vous ne pouvez sélectionner que 6 images."),
+              content: Text("Une image à la fois"),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -80,12 +84,13 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
       physics: NeverScrollableScrollPhysics(),
       children: List.generate(images.length, (index) {
         File image = images[index];
+        Uint8List imageBytes = image.readAsBytesSync();
         return Stack(
           children: [
             Container(
               margin: EdgeInsets.all(8.0),
-              child: Image.file(
-                image,
+              child: Image.memory(
+                Uint8List.fromList(imageBytes),
                 height: 100,
                 width: 100,
                 fit: BoxFit.cover,
@@ -116,17 +121,84 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
 
     return Column(
       children: [
-        Text(startDateText),
-        Text(endDateText),
+        Text(
+          startDateText,
+          style: TextStyle(fontSize: 16.0),
+        ),
+        Text(
+          endDateText,
+          style: TextStyle(fontSize: 16.0),
+        ),
       ],
     );
+  }
+
+  Future<void> submitForm() async {
+    try {
+      if (titleController.text.isNotEmpty &&
+          descriptionController.text.isNotEmpty &&
+          locationController.text.isNotEmpty &&
+          startDate != null &&
+          endDate != null) {
+        Map<String, dynamic> postData = {
+          'Titre': titleController.text,
+          'Description': descriptionController.text,
+          'Localisation': locationController.text,
+          'Date_debut': startDate!.toIso8601String(),
+          'Date_fin': endDate!.toIso8601String(),
+          'Images': images.map((image) {
+            return base64Encode(image.readAsBytesSync());
+          }).toList(),
+        };
+
+        var request = await http.post(
+          Uri.parse('http://10.0.2.2:3001/creationAnnonce'),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: jsonEncode(postData),
+        );
+
+        if (request.statusCode == 200 || request.statusCode == 201) {
+          print('Annonce créée avec succès');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ListeAnnoncesScreen()),
+          );
+        } else {
+          print(
+              'Échec de la création de l\'annonce. Code d\'erreur: ${request.statusCode}');
+        }
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Champs incomplets"),
+              content: Text(
+                  "Veuillez remplir tous les champs avant de soumettre."),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (error) {
+      print('Erreur lors de la création de l\'annonce: $error');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Post Garde de plante'),
+        title: Text('Annonce Garde de plante'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -155,6 +227,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 controller: titleController,
                 decoration: InputDecoration(
                   labelText: "Titre de l'annonce",
+                  border: OutlineInputBorder(),
                 ),
               ),
               SizedBox(height: 8.0),
@@ -162,6 +235,15 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 controller: descriptionController,
                 decoration: InputDecoration(
                   labelText: "Description de l'annonce",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 8.0),
+              TextField(
+                controller: locationController,
+                decoration: InputDecoration(
+                  labelText: "Localisation",
+                  border: OutlineInputBorder(),
                 ),
               ),
               SizedBox(height: 16.0),
@@ -174,6 +256,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                     onPressed: () => selectDate(true),
                     child: Text("Date de début"),
                   ),
+                  SizedBox(height: 8.0),
                   ElevatedButton(
                     onPressed: () => selectDate(false),
                     child: Text("Date de fin"),
@@ -182,41 +265,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
               ),
               SizedBox(height: 16.0),
               ElevatedButton(
-                onPressed: () {
-                  // Vérifiez si tous les champs sont remplis
-                  if (images.isNotEmpty &&
-                      titleController.text.isNotEmpty &&
-                      descriptionController.text.isNotEmpty &&
-                      startDate != null &&
-                      endDate != null) {
-                    // Si tous les champs sont remplis, naviguez vers la page de localisation
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => LocalisationScreen()),
-                    );
-                  } else {
-                    // Sinon, affichez un message d'erreur
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text("Champs incomplets"),
-                          content: Text(
-                              "Veuillez remplir tous les champs avant de soumettre."),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text('OK'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
-                },
+                onPressed: submitForm,
                 child: Text("Soumettre"),
               ),
             ],
